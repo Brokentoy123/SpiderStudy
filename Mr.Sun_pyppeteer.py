@@ -135,20 +135,47 @@ def get_img_pos():
     cv2.rectangle(template, tl, br, (0, 0, 255), 2)  # 绘制矩形
 
     cv2.imwrite('out.jpg', template)  # 保存在本地
-
-    # block = cv2.cvtColor(block, cv2.COLOR_BGR2GRAY)
-    # block = (255 - block)
-    # cv2.imwrite('block.jpg', block)
-    # block = cv2.imread('block.jpg')
-    #
-    # cv2.imshow('template.jps', template)
-    # result = cv2.matchTemplate(block, template, cv2.TM_CCOEFF_NORMED)
-    # x, y = np.unravel_index(result.argmax(), result.shape)
-    # # 图片测试
-    # print(np.unravel_index(result.argmax(), result.shape))
-    # print(x, y)
     return X
 
+def getImgPos(src1,src2):
+    img1 = requests.get(src1, headers=header).content
+    with open('slide_bkg.png', 'wb')as f:
+        f.write(img1)
+    img2 = requests.get(src2, headers=header).content
+    with open('slide_block.png', 'wb')as f:
+        f.write(img2)
+
+    # 使用python的OpenCV模块识别滑动验证码的缺口
+    block = cv2.imread('slide_block.png', 0)
+    template = cv2.imread('slide_bkg.png', 0)
+
+    cv2.imwrite('template.jpg', template)
+    cv2.imwrite('block.jpg', block)
+    block = cv2.imread('block.jpg')
+    template = cv2.imread('template.jpg')
+    bg_edge = cv2.Canny(template, 100, 200)
+    tp_edge = cv2.Canny(block, 100, 200)
+    bg_pic = cv2.cvtColor(bg_edge, cv2.COLOR_GRAY2RGB)
+    tp_pic = cv2.cvtColor(tp_edge, cv2.COLOR_GRAY2RGB)
+    cv2.imshow('bg_pic', bg_pic)
+    cv2.imshow('tp_pic', tp_pic)
+    # cv2.waitKey(0)
+
+    res = cv2.matchTemplate(bg_pic, tp_pic, cv2.TM_CCOEFF_NORMED)
+    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+    X = max_loc[1]
+    Y = max_loc[0]
+    print("x:", X, "y:", Y)
+    th, tw = tp_pic.shape[:2]
+
+    tl = max_loc  # 左上角点的坐标
+
+    br = (tl[0] + tw, tl[1] + th)  # 右下角点的坐标
+
+    cv2.rectangle(template, tl, br, (0, 0, 255), 2)  # 绘制矩形
+
+    cv2.imwrite('out.jpg', template)  # 保存在本地
+    return X
 
 def getcookies_decode_to_dict(browser):
     path = os.path.abspath('cookies.txt')
@@ -161,25 +188,6 @@ def getcookies_decode_to_dict(browser):
 
     for i in cookies:
         print(i)
-    # for cookie in cookies:
-    #     cookies_dict[cookie['name']] = cookie['value']
-
-    # for cookie in cookies:
-    #     cookie_dict = {
-    #         'domain': '.oceanengine.com',
-    #         'name': cookie.get('name'),
-    #         'value': cookie.get('value'),
-    #         "expires": '',
-    #         'path': '/',
-    #         'httpOnly': False,
-    #         'HostOnly': False,
-    #         'Secure': False
-    #     }
-    #     browser.add_cookie(cookie_dict)
-
-    # print(cookies_dict)
-    # browser.add_cookie(cookies_dict)
-
 
 def get_track(distance):
     track = []
@@ -265,13 +273,13 @@ if __name__ == '__main__':
                 })
             }'''
 
-        browser = await launch({'headless': False, 'args': ['--no-sandbox', ], })
+        browser = await launch({'headless': False, 'args': ['--no-sandbox','--windows-size=400,900' ], })
         page = await browser.newPage()
-        width, height = getScreamSize()
-        print(width, height)
+        # width, height = getScreamSize()
+        # print(width, height)
         await page.setViewport({  # 最大化窗口
-            "width": width,
-            "height": height
+            "width": 1400,
+            "height": 900
         })
         print("设置最大化")
         # 设置请求头userAgent
@@ -285,7 +293,7 @@ if __name__ == '__main__':
         loginImdBtn = await page.xpath('//a[@class="login operation-item"]')
         print(loginImdBtn, "已获取登录按钮xpath")
         await loginImdBtn[0].click()
-        await asyncio.sleep(20)
+        await asyncio.sleep(3)
 
         # 输入账号密码
         mailInput = await page.xpath('//input[@name="email"]')
@@ -296,10 +304,31 @@ if __name__ == '__main__':
         # await page.type(user)
         await passwordInput[0].type(password)
         # await page.type(passwordInput, password, input)
-        await asyncio.sleep(20)
-
-        await browser.close()
-
+        await asyncio.sleep(3)
+        # 输入账号密码后登录
+        loginBtn = await page.xpath('//*[@id="account-sdk"]/section/div[6]/button')
+        print(loginBtn)
+        await loginBtn[0].click()
+        await asyncio.sleep(10)
+        frame = page.frames
+        img1 = await page.xpath('//img[contains(@id,"captcha-verify-image")]')
+        img2 = await page.xpath('//img[contains(@class,"captcha_verify_img_slide")]')
+        # print(img1[0].getProperty('src').jsonValue(),img2[0].getProperty('src').jsonValue())
+        img1Src = await(await img1[0].getProperty('src')).jsonValue()
+        print('img1Src序列化')
+        img2Src = await(await img2[0].getProperty('src')).jsonValue()
+        print('imgSrc2序列化')
+        X = getImgPos(img1Src,img2Src)
+        track = get_track(X)
+        await frame[0].hover('#secsdk-captcha-drag-wrapper > div.secsdk-captcha-drag-icon.sc-jKJlTe.fsBatO')
+        await page.mouse.down()
+        for i in track:
+            print('移动了',i)
+            await page.mouse.move(x=i,y=0)
+        await asyncio.sleep(1)
+        await page.mouse.down()
+        print(img1Src,img2Src)
+        await asyncio.sleep(50)
 
     asyncio.get_event_loop().run_until_complete(main())
     # 手动登录，获取cookie信息
