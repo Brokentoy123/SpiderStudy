@@ -9,11 +9,11 @@ import json
 import os
 import random
 
-
-def saveCookies(browser):
-    cookies = browser.get_cookies()
-    with open(cookiesFile, 'w') as cookie:
-        json.dump(cookies, cookie)
+# # 保存cookie维持会话状态，失败了
+# def saveCookies(browser):
+#     cookies = browser.get_cookies()
+#     with open(cookiesFile, 'w') as cookie:
+#         json.dump(cookies, cookie)
 
 
 def getCookie():
@@ -25,19 +25,23 @@ def getCookie():
     loginButton.click()
 
     time.sleep(2)
-
+    # 输入账号密码
     mailInput = browser.find_element_by_xpath('//input[@name="email"]')
+    # 输入密码
     passwordInput = browser.find_element_by_xpath('//input[@name="password"]')
+    # 获取登录按钮
     loginBtn = browser.find_element_by_xpath('//button[@class="account-center-action-button"]')
     mailInput.send_keys(user)
     passwordInput.send_keys(password)
     loginBtn.click()
     time.sleep(2)
+    # 获取验证码图片及其相应的偏移量
     y = get_img_pos()
     print("y=", y, type(y))
-
+    # 获取验证码滑块
     button = browser.find_element_by_xpath('//*[@id="secsdk-captcha-drag-wrapper"]/div[1]')
     # ActionChains(browser).click_and_hold(on_element=button).perform()
+    # 将偏移量转换为列表，通过循环列表来模拟人鼠标拖动的情况
     track = get_track(y)
     print(track)
     ActionChains(browser).click_and_hold(on_element=button)
