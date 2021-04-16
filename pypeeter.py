@@ -8,3 +8,4 @@ async def main():
     await page.goto('http://www.baidu.com')
     await asyncio.sleep(100)
     await browser.close()
+asyncio.get_event_loop().run_until_complete(main())

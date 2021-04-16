@@ -8,6 +8,15 @@ import numpy as np
 import json
 import os
 import random
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+import asyncio
+from pyppeteer import launch
+from pyquery import PyQuery as pq
+
+
+
 
 # 保存cookie维持会话状态，失败了
 def saveCookies(browser):
@@ -37,16 +46,27 @@ def getCookie():
     time.sleep(2)
     # 获取验证码图片及其相应的偏移量
     y = get_img_pos()
-    print("y=", y, type(y))
+    # print("y=", y, type(y))
     # 获取验证码滑块
+    # button = browser.find_element_by_xpath('//*[@id="secsdk-captcha-drag-wrapper"]/div[2]/div')
     button = browser.find_element_by_xpath('//*[@id="secsdk-captcha-drag-wrapper"]/div[2]')
+    # button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME,'secsdk-captcha-drag-wrapper')))
+    print("btnlocation:",button.location)
     # ActionChains(browser).click_and_hold(on_element=button).perform()
     # 将偏移量转换为列表，通过循环列表来模拟人鼠标拖动的情况
     track = get_track(y)
+    # transform是在拖动滑块时，style有变化的节点
+    transform = browser.find_element_by_xpath('//*[@id="account-sdk-slide-container"]/div/div[2]/img[2]')
     print(track)
-    ActionChains(browser).click_and_hold(on_element=button)
+    # iframe = browser.find_element_by_xpath('//iframe')
+    # browser.switch_to.frame(iframe)
+
+    ActionChains(browser).click_and_hold(on_element=button).perform()
+    # sum = 0
     for x in track:
         print("正在移动", x)
+        # sum = sum + x
+        # setAttribute(browser,transform,'style','transform:translate('+str(sum)+'px,0px)')
         ActionChains(browser).move_to_element_with_offset(to_element=button, xoffset=x, yoffset=0).perform()
     time.sleep(0.5)
     ActionChains(browser).release().perform()
@@ -58,6 +78,8 @@ def getCookie():
 
     saveCookies(browser=browser)
 
+def setAttribute(browser,element,name,value):
+    browser.execute_script("arguments[0].setAttribute(arguments[1],arguments[2])", element, name, value)
 
 def get_img_pos():
     time.sleep(3)
@@ -91,7 +113,9 @@ def get_img_pos():
 
     res = cv2.matchTemplate(bg_pic, tp_pic, cv2.TM_CCOEFF_NORMED)
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-    X = max_loc[0]
+    X = max_loc[1]
+    Y = max_loc[0]
+    print("x:",X,"y:",Y)
     th, tw = tp_pic.shape[:2]
 
     tl = max_loc  # 左上角点的坐标
@@ -192,8 +216,8 @@ if __name__ == '__main__':
     # 隐藏window.navigator.webdriver
     option.add_argument("--disable-blink-features=AutomationControlled")
     # 添加user-agent
-    option.add_argument(
-        'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36')
+    # option.add_argument(
+    #     'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36')
     header = {}
     # header = {
     #     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36'
@@ -201,24 +225,28 @@ if __name__ == '__main__':
     user_agent_list = [
         "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36",
         "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; …) Gecko/20100101 Firefox/61.0",
         "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36",
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.62 Safari/537.36",
         "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36",
         "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0)",
         "Mozilla/5.0 (Macintosh; U; PPC Mac OS X 10.5; en-US; rv:1.9.2.15) Gecko/20110303 Firefox/3.6.15",
     ]
+
     header['User-Agent'] = random.choice(user_agent_list)
+    headerString = "user-agent="+header.get('User-Agent')
+    option.add_argument(headerString)
     # browser = webdriver.Chrome(options=option)
     browser = webdriver.Safari()
+    wait = WebDriverWait(browser, 5)
+
     # 手动登录，获取cookie信息
     getCookie()
     # 读取cookie
-    cookieFile = open(os.path.abspath('cookies.txt'))
-    getcookies_decode_to_dict(browser)
-    response = requests.get(url=url, headers=header)
-    browser.get(url)
-    if "立即登录" in response.text:
-        "登录失败"
-    else:
-        "登录成功"
+    # cookieFile = open(os.path.abspath('cookies.txt'))
+    # getcookies_decode_to_dict(browser)
+    # response = requests.get(url=url, headers=header)
+    # browser.get(url)
+    # if "立即登录" in response.text:
+    #     "登录失败"
+    # else:
+    #     "登录成功"
