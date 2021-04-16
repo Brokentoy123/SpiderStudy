@@ -9,11 +9,11 @@ import json
 import os
 import random
 
-# # 保存cookie维持会话状态，失败了
-# def saveCookies(browser):
-#     cookies = browser.get_cookies()
-#     with open(cookiesFile, 'w') as cookie:
-#         json.dump(cookies, cookie)
+# 保存cookie维持会话状态，失败了
+def saveCookies(browser):
+    cookies = browser.get_cookies()
+    with open(cookiesFile, 'w') as cookie:
+        json.dump(cookies, cookie)
 
 
 def getCookie():
