@@ -84,7 +84,7 @@ def setAttribute(browser,element,name,value):
 def get_img_pos():
     time.sleep(3)
     # browser.switch_to.frame(browser.find_element_by_id('tcaptcha_iframe'))
-    image1 = browser.find_element_by_id('captcha-verify-image').get_attribute('src')  # 下载需要验证图
+    image1 = browser.find_element_by_xpath('//img[contains(@id,"captcha-verify-image")]').get_attribute('src')  # 下载需要验证图
     image2 = browser.find_element_by_xpath('//img[contains(@class,"captcha_verify_img_slide")]').get_attribute(
         'src')  # 下载缺口图
 
