@@ -39,7 +39,7 @@ def getCookie():
     y = get_img_pos()
     print("y=", y, type(y))
     # 获取验证码滑块
-    button = browser.find_element_by_xpath('//*[@id="secsdk-captcha-drag-wrapper"]/div[1]')
+    button = browser.find_element_by_xpath('//*[@id="secsdk-captcha-drag-wrapper"]/div[2]')
     # ActionChains(browser).click_and_hold(on_element=button).perform()
     # 将偏移量转换为列表，通过循环列表来模拟人鼠标拖动的情况
     track = get_track(y)
