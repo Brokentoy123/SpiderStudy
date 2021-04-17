@@ -62,19 +62,23 @@ def getImgPos(src1, src2):
     tp_edge = cv2.Canny(block, 100, 200)
     bg_pic = cv2.cvtColor(bg_edge, cv2.COLOR_GRAY2RGB)
     tp_pic = cv2.cvtColor(tp_edge, cv2.COLOR_GRAY2RGB)
-    cv2.imshow('bg_pic', bg_pic)
-    cv2.imshow('tp_pic', tp_pic)
+    # cv2.imshow('bg_pic', bg_pic)
+    # cv2.imshow('tp_pic', tp_pic)
     # cv2.waitKey(0)
 
     res = cv2.matchTemplate(bg_pic, tp_pic, cv2.TM_CCOEFF_NORMED)
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-    X = max_loc[1]
-    Y = max_loc[0]
+    X = (max_loc[0]+min_loc[0])/2
+    Y =(max_loc[1]+min_loc[1])/2
     print("x:", X, "y:", Y)
     th, tw = tp_pic.shape[:2]
+
     tl = max_loc  # 左上角点的坐标
+
     br = (tl[0] + tw, tl[1] + th)  # 右下角点的坐标
+
     cv2.rectangle(template, tl, br, (0, 0, 255), 2)  # 绘制矩形
+
     cv2.imwrite('out.jpg', template)  # 保存在本地
     return X
 
@@ -124,6 +128,12 @@ def get_track(distance):
 def input_time_random():
     return random.randint(100, 151)
 
+async def _injection_js(page):
+        """注入js
+        """
+        await page.evaluateOnNewDocument('() =>{ Object.defineProperties(navigator,''{ webdriver:{ get: () => false } }) }')  # 本页刷新后值不变
+        await page.evaluateOnNewDocument('() => {window.navigator.chrome = {runtime: {},// etc.};}')
+        await page.evaluateOnNewDocument('() =>{Object.defineProperty(navigator, "plugins", {get: () => [1, 2, 3, 4, 5,6],});}')
 
 if __name__ == '__main__':
     url = "https://www.oceanengine.com"
@@ -161,6 +171,7 @@ if __name__ == '__main__':
     header['User-Agent'] = random.choice(user_agent_list)
     headerString = "user-agent=" + header.get('User-Agent')
     option.add_argument(headerString)
+
     # browser = webdriver.Chrome(options=option)
     # browser = webdriver.Safari()
     # wait = WebDriverWait(browser, 5)
@@ -173,7 +184,16 @@ if __name__ == '__main__':
                     }
                 })
             }'''
-        # js2 = '''() =>{ Object.defineProperties(navigator,''{ webdriver:{ get: () => false } }) }'''
+
+        webdriver_js = '''() =>{
+           Object.defineProperties(navigator,{
+             webdriver:{
+               get: () => false
+             }
+           })
+        }
+'''
+
         browser = await launch({'headless': False, 'userDataDir': 'D:\\temporary', 'args': ['--no-sandbox', '--start-maximized'], })
 
         page = await browser.newPage()
@@ -186,18 +206,12 @@ if __name__ == '__main__':
         print("设置最大化")
         # 设置请求头userAgent
         await page.setUserAgent(header.get('User-Agent'))
-        # await page.evaluateOnNewDocument('() =>{ Object.defineProperties(navigator,''{ webdriver:{ get: () => false } }) }')
-        await page.goto('https://oceanengine.com', {"waitUntil": 'networkidle2'})
+        await page.goto('https://e.oceanengine.com/account/page/service/login?from=https%3A%2F%2Fwww.oceanengine.com%2F', {"waitUntil": 'networkidle2'})
         await page.evaluate(js1)
-        # await page.evaluate(js2)
+        _injection_js(page)
+        # await page.evaluate(webdriver_js)
         print("执行js1")
         await asyncio.sleep(2)
-        # 获取立即登录按钮
-        print("开始获取登录按钮")
-        loginImdBtn = await page.xpath('//a[@class="login operation-item"]')
-        print(loginImdBtn, "已获取登录按钮xpath")
-        await loginImdBtn[0].click()
-        await asyncio.sleep(3)
 
         # 输入账号密码
         mailInput = await page.xpath('//input[@name="email"]')
@@ -212,7 +226,7 @@ if __name__ == '__main__':
         loginBtn = await page.xpath('//*[@id="account-sdk"]/section/div[6]/button')
         # print(loginBtn)
         await loginBtn[0].click()
-        await asyncio.sleep(5)
+        await asyncio.sleep(1)
         frame = page.frames
         img1 = await page.xpath('//img[contains(@id,"captcha-verify-image")]')
         img2 = await page.xpath('//img[contains(@class,"captcha_verify_img_slide")]')
@@ -226,22 +240,25 @@ if __name__ == '__main__':
         print('imgSrc2序列化')
         X = getImgPos(img1Src, img2Src)
         track = get_track(X)
-        # bound = await page.xpath('//*[@id="secsdk-captcha-drag-wrapper"]/div[2]')
-        # boundBox = await bound.boundingBox()
         await page.hover('.secsdk-captcha-drag-icon')
-        await page.mouse.down()
-        for i in frame:
-            print(i.content())
+        slider = await page.xpath('//*[@id="secsdk-captcha-drag-wrapper"]/div[2]')
+        sliderInfo = await slider[0].boundingBox()
+        mouse = page.mouse
+
+        print("sliderInfo:",sliderInfo)
+        await mouse.move(sliderInfo['x'], sliderInfo['y'])
+        await mouse.down()
         sum = 0
         for i in track:
-            print('移动了', i)
-            sum = sum+i
-            await page.mouse.move(x=i*15, y=0)
-        await asyncio.sleep(1)
-        await page.mouse.up()
-        print(img1Src, img2Src)
-        while True:
-            pass
+            sum = sum + i
+            await mouse.move(sliderInfo['x']+sum/1.62,sliderInfo['y']+i)
+            print(mouse._x)
+        
+        # await mouse.move(sliderInfo['x']+X+45,sliderInfo['y'] + 30)
+        await asyncio.sleep(0.3)
+        # 松开鼠标
+        await mouse.up()
+        time.sleep(100)
 
     asyncio.get_event_loop().run_until_complete(main())
     # 手动登录，获取cookie信息

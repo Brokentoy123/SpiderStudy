@@ -62,12 +62,13 @@ def getCookie():
     # browser.switch_to.frame(iframe)
 
     ActionChains(browser).click_and_hold(on_element=button).perform()
+    ActionChains(browser).move_to_element_with_offset(to_element=button, xoffset=y, yoffset=0).perform()
     # sum = 0
-    for x in track:
-        print("正在移动", x)
-        # sum = sum + x
-        # setAttribute(browser,transform,'style','transform:translate('+str(sum)+'px,0px)')
-        ActionChains(browser).move_to_element_with_offset(to_element=button, xoffset=x, yoffset=0).perform()
+    # for x in track:
+    #     print("正在移动", x)
+    #     # sum = sum + x
+    #     # setAttribute(browser,transform,'style','transform:translate('+str(sum)+'px,0px)')
+    #     ActionChains(browser).move_to_element_with_offset(to_element=button, xoffset=x, yoffset=0).perform()
     time.sleep(0.5)
     ActionChains(browser).release().perform()
 
@@ -235,8 +236,8 @@ if __name__ == '__main__':
     header['User-Agent'] = random.choice(user_agent_list)
     headerString = "user-agent="+header.get('User-Agent')
     option.add_argument(headerString)
-    # browser = webdriver.Chrome(options=option)
-    browser = webdriver.Safari()
+    browser = webdriver.Chrome(options=option)
+    # browser = webdriver.Safari()
     wait = WebDriverWait(browser, 5)
 
     # 手动登录，获取cookie信息
