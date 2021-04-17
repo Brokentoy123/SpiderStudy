@@ -56,26 +56,25 @@ def getCookie():
     # 将偏移量转换为列表，通过循环列表来模拟人鼠标拖动的情况
     track = get_track(y)
     # transform是在拖动滑块时，style有变化的节点
-    transform = browser.find_element_by_xpath('//*[@id="account-sdk-slide-container"]/div/div[2]/img[2]')
-    print(track)
     # iframe = browser.find_element_by_xpath('//iframe')
     # browser.switch_to.frame(iframe)
-
-    ActionChains(browser).click_and_hold(on_element=button).perform()
-    ActionChains(browser).move_to_element_with_offset(to_element=button, xoffset=y, yoffset=0).perform()
-    # sum = 0
-    # for x in track:
-    #     print("正在移动", x)
-    #     # sum = sum + x
-    #     # setAttribute(browser,transform,'style','transform:translate('+str(sum)+'px,0px)')
-    #     ActionChains(browser).move_to_element_with_offset(to_element=button, xoffset=x, yoffset=0).perform()
-    time.sleep(0.5)
-    ActionChains(browser).release().perform()
+    action = ActionChains(browser)
+    action.click_and_hold(on_element=button).perform()
+    # ActionChains(browser).move_to_element_with_offset(to_element=button, xoffset=y, yoffset=0).perform()
+    sum = 0
+    print(track)
+    for i in track:
+        print("正在移动", i)
+        # setAttribute(browser,transform,'style','transform:translate('+str(sum)+'px,0px)')
+        # action.move_to_element_with_offset(on_element=button,xoffset=sum, yoffset=random.randint(-2,2)).perform()
+        action.move_by_offset(xoffset=i,yoffset=0).perform()
+        action = ActionChains(browser)
+        print(button.location['x'])
+    action.release().perform()
 
     # ActionChains(browser).move_to_element_with_offset(to_element=button, xoffset=int(y) * 0.4 + 18, yoffset=0).perform()
     # time.sleep(1)
     # ActionChains(browser).release(on_element=button).perform()
-    time.sleep(20)
 
     saveCookies(browser=browser)
 
@@ -108,14 +107,14 @@ def get_img_pos():
     tp_edge = cv2.Canny(block, 100, 200)
     bg_pic = cv2.cvtColor(bg_edge, cv2.COLOR_GRAY2RGB)
     tp_pic = cv2.cvtColor(tp_edge, cv2.COLOR_GRAY2RGB)
-    cv2.imshow('bg_pic', bg_pic)
-    cv2.imshow('tp_pic', tp_pic)
+    # cv2.imshow('bg_pic', bg_pic)
+    # cv2.imshow('tp_pic', tp_pic)
     # cv2.waitKey(0)
 
     res = cv2.matchTemplate(bg_pic, tp_pic, cv2.TM_CCOEFF_NORMED)
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-    X = max_loc[1]
-    Y = max_loc[0]
+    X = max_loc[0]
+    Y = max_loc[1]
     print("x:",X,"y:",Y)
     th, tw = tp_pic.shape[:2]
 
@@ -177,7 +176,7 @@ def get_track(distance):
     # 当前位移
     current = 0
     # 减速阈值
-    mid = distance * 4 / 5
+    mid = distance * 3 / 5
     # 计算间隔
     t = 0.2
     # 初速度
@@ -197,7 +196,7 @@ def get_track(distance):
         move = v0 * t + 1 / 2 * a * t * t
         # 当前位移
         current += move
-        track.append(round(move))
+        track.append(round(move/1.6))
     return track
 
 
@@ -236,7 +235,7 @@ if __name__ == '__main__':
     header['User-Agent'] = random.choice(user_agent_list)
     headerString = "user-agent="+header.get('User-Agent')
     option.add_argument(headerString)
-    browser = webdriver.Chrome(options=option)
+    browser = webdriver.Chrome(options=option,executable_path='D:\downloads\chromedriver_win32\chromedriver.exe')
     # browser = webdriver.Safari()
     wait = WebDriverWait(browser, 5)
 
