@@ -265,7 +265,6 @@ if __name__ == '__main__':
 
     async def main():
         js1 = '''() =>{
-
                 Object.defineProperties(navigator,{
                 webdriver:{
                     get: () => false
