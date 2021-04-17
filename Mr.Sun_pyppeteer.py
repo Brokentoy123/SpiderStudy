@@ -321,12 +321,12 @@ if __name__ == '__main__':
         X = getImgPos(img1Src,img2Src)
         track = get_track(X)
         await frame[0].hover('#secsdk-captcha-drag-wrapper > div.secsdk-captcha-drag-icon.sc-jKJlTe.fsBatO')
-        await page.mouse.down()
+        await page.mouse.down({'button':'left'})
         for i in track:
             print('移动了',i)
             await page.mouse.move(x=i,y=0)
         await asyncio.sleep(1)
-        await page.mouse.up()
+        await page.mouse.up({'button':'left'})
         print(img1Src,img2Src)
         await asyncio.sleep(50)
 
