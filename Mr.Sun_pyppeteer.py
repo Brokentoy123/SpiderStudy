@@ -326,7 +326,7 @@ if __name__ == '__main__':
             print('移动了',i)
             await page.mouse.move(x=i,y=0)
         await asyncio.sleep(1)
-        await page.mouse.down()
+        await page.mouse.up()
         print(img1Src,img2Src)
         await asyncio.sleep(50)
 
