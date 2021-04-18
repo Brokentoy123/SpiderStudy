@@ -54,6 +54,7 @@ def getImgPos(src1, src2):
     block = cv2.imread(slide_block_png, 0)
     template = cv2.imread(slide_bkg_png, 0)
 
+
     cv2.imwrite('template.jpg', template)
     cv2.imwrite('block.jpg', block)
     block = cv2.imread('block.jpg')
