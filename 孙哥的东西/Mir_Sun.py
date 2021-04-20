@@ -1,3 +1,4 @@
+from os import path
 from selenium import webdriver
 import time
 from selenium.webdriver import ActionChains
@@ -14,7 +15,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 import asyncio
 from pyppeteer import launch
 from pyquery import PyQuery as pq
-
+from selenium.common.exceptions import NoSuchElementException#判断元素存在
 
 
 
@@ -24,67 +25,116 @@ def saveCookies(browser):
     with open(cookiesFile, 'w') as cookie:
         json.dump(cookies, cookie)
 
+# 查找标签是否存在
+def isElementPresent(browser ,path):
+    try:
+        element = browser.find_element_by_xpath(path)
+    # 原文是except NoSuchElementException, e:
+    except NoSuchElementException as e:
+        # 发生了NoSuchElementException异常，说明页面中未找到该元素，返回False
+        return False
+    else:
+        # 没有发生异常，表示在页面中找到了该元素，返回True
+        return True
 
-def getCookie():
+def login():
     browser.maximize_window()
     browser.get(url)
-
-    loginButton = browser.find_element_by_xpath('//a[@class="login operation-item"]')
-
+    loginButton = browser.find_element_by_xpath(
+        '//a[@class="login operation-item"]')
     loginButton.click()
-
     time.sleep(2)
     # 输入账号密码
     mailInput = browser.find_element_by_xpath('//input[@name="email"]')
     # 输入密码
     passwordInput = browser.find_element_by_xpath('//input[@name="password"]')
     # 获取登录按钮
-    loginBtn = browser.find_element_by_xpath('//button[@class="account-center-action-button"]')
+    loginBtn = browser.find_element_by_xpath(
+        '//button[@class="account-center-action-button"]')
     mailInput.send_keys(user)
     passwordInput.send_keys(password)
     loginBtn.click()
     time.sleep(2)
-    # 获取验证码图片及其相应的偏移量
-    y = get_img_pos()
-    # print("y=", y, type(y))
-    # 获取验证码滑块
-    # button = browser.find_element_by_xpath('//*[@id="secsdk-captcha-drag-wrapper"]/div[2]/div')
-    button = browser.find_element_by_xpath('//*[@id="secsdk-captcha-drag-wrapper"]/div[2]')
-    # button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME,'secsdk-captcha-drag-wrapper')))
-    print("btnlocation:",button.location)
-    # ActionChains(browser).click_and_hold(on_element=button).perform()
-    # 将偏移量转换为列表，通过循环列表来模拟人鼠标拖动的情况
-    track = get_track(y)
-    # transform是在拖动滑块时，style有变化的节点
-    # iframe = browser.find_element_by_xpath('//iframe')
-    # browser.switch_to.frame(iframe)
-    action = ActionChains(browser)
-    action.click_and_hold(on_element=button).perform()
-    # ActionChains(browser).move_to_element_with_offset(to_element=button, xoffset=y, yoffset=0).perform()
-    sum = 0
-    print(track)
-    for i in track:
-        print("正在移动", i)
-        # setAttribute(browser,transform,'style','transform:translate('+str(sum)+'px,0px)')
-        # action.move_to_element_with_offset(on_element=button,xoffset=sum, yoffset=random.randint(-2,2)).perform()
-        action.move_by_offset(xoffset=i,yoffset=0).perform()
+
+    #在login()方法中，要完成登录
+    while(isElementPresent(browser,wrapperPath)):
+        # 标签存在，则继续进行验证码滑动
+         # 获取验证码图片及其相应的偏移量
+        y = get_img_pos()
+        try:
+            button = browser.find_element_by_xpath(
+                '//*[@id="secsdk-captcha-drag-wrapper"]/div[2]')
+        except Exception as e:
+            break
+        track = get_track(y)
         action = ActionChains(browser)
-        print(button.location['x'])
-    action.release().perform()
+        action.click_and_hold(on_element=button).perform()
+        for index,i in enumerate(track):
+            print("正在移动", i)
+            # setAttribute(browser,transform,'style','transform:translate('+str(sum)+'px,0px)')
+            # action.move_to_element_with_offset(on_element=button,xoffset=sum, yoffset=random.randint(-2,2)).perform()
+            print(index%2)
+            if (index%2==0):
+                action.move_by_offset(xoffset=i, yoffset=random.randint(-2,2)).perform()
+            else:
+                action.move_by_offset(xoffset=i+random.randint(-1,1), yoffset=random.randint(-2,2)).perform()
+            action = ActionChains(browser)
+            print(button.location['x'])
+        time.sleep(0.5)
+        action.release().perform()
+        time.sleep(2)
+        pass
+    print("登陆成功")
+   
+    # # print("y=", y, type(y))
+    # # 获取验证码滑块
+    # # button = browser.find_element_by_xpath('//*[@id="secsdk-captcha-drag-wrapper"]/div[2]/div')
+    # button = browser.find_element_by_xpath(
+    #     '//*[@id="secsdk-captcha-drag-wrapper"]/div[2]')
+    # # button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME,'secsdk-captcha-drag-wrapper')))
+    # # print("btnlocation:", button.location)
+    # # ActionChains(browser).click_and_hold(on_element=button).perform()
+    # # 将偏移量转换为列表，通过循环列表来模拟人鼠标拖动的情况
+    # track = get_track(y)
+    # # transform是在拖动滑块时，style有变化的节点
+    # # iframe = browser.find_element_by_xpath('//iframe')
+    # # browser.switch_to.frame(iframe)
+    # action = ActionChains(browser)
+    # action.click_and_hold(on_element=button).perform()
+    # # ActionChains(browser).move_to_element_with_offset(to_element=button, xoffset=y, yoffset=0).perform()
+    # sum = 0
+    # print(track)
+    # for index,i in enumerate(track):
+    #     print("正在移动", i)
+    #     # setAttribute(browser,transform,'style','transform:translate('+str(sum)+'px,0px)')
+    #     # action.move_to_element_with_offset(on_element=button,xoffset=sum, yoffset=random.randint(-2,2)).perform()
+    #     print(index%2)
+    #     if (index%2==0):
+    #         action.move_by_offset(xoffset=i, yoffset=random.randint(-2,2)).perform()
+    #     else:
+    #         action.move_by_offset(xoffset=i+random.randint(-1,1), yoffset=random.randint(-2,2)).perform()
+    #     action = ActionChains(browser)
+    #     print(button.location['x'])
+    # time.sleep(0.5)
+    # action.release().perform()
 
-    # ActionChains(browser).move_to_element_with_offset(to_element=button, xoffset=int(y) * 0.4 + 18, yoffset=0).perform()
-    # time.sleep(1)
-    # ActionChains(browser).release(on_element=button).perform()
+    # # ActionChains(browser).move_to_element_with_offset(to_element=button, xoffset=int(y) * 0.4 + 18, yoffset=0).perform()
+    # # time.sleep(1)
+    # # ActionChains(browser).release(on_element=button).perform()
 
-    saveCookies(browser=browser)
+    # saveCookies(browser=browser)
 
-def setAttribute(browser,element,name,value):
-    browser.execute_script("arguments[0].setAttribute(arguments[1],arguments[2])", element, name, value)
+
+def setAttribute(browser, element, name, value):
+    browser.execute_script(
+        "arguments[0].setAttribute(arguments[1],arguments[2])", element, name, value)
+
 
 def get_img_pos():
     time.sleep(3)
     # browser.switch_to.frame(browser.find_element_by_id('tcaptcha_iframe'))
-    image1 = browser.find_element_by_xpath('//img[contains(@id,"captcha-verify-image")]').get_attribute('src')  # 下载需要验证图
+    image1 = browser.find_element_by_xpath(
+        '//img[contains(@id,"captcha-verify-image")]').get_attribute('src')  # 下载需要验证图
     image2 = browser.find_element_by_xpath('//img[contains(@class,"captcha_verify_img_slide")]').get_attribute(
         'src')  # 下载缺口图
 
@@ -115,7 +165,7 @@ def get_img_pos():
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
     X = max_loc[0]
     Y = max_loc[1]
-    print("x:",X,"y:",Y)
+    print("x:", X, "y:", Y)
     th, tw = tp_pic.shape[:2]
 
     tl = max_loc  # 左上角点的坐标
@@ -176,7 +226,7 @@ def get_track(distance):
     # 当前位移
     current = 0
     # 减速阈值
-    mid = distance * 3 / 5
+    mid = distance * 4 / 5
     # 计算间隔
     t = 0.2
     # 初速度
@@ -205,6 +255,8 @@ if __name__ == '__main__':
     user = "976004996@qq.com"
     password = "Szh976004996"
     cookiesFile = 'cookies.txt'
+    wrapperPath = '//*[@id="secsdk-captcha-drag-wrapper"]/div[2]'
+
     if os.path.exists(os.path.abspath(cookiesFile)):
         pass
     else:
@@ -231,22 +283,30 @@ if __name__ == '__main__':
         "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0)",
         "Mozilla/5.0 (Macintosh; U; PPC Mac OS X 10.5; en-US; rv:1.9.2.15) Gecko/20110303 Firefox/3.6.15",
     ]
+script = '''
+Object.defineProperty(navigator, 'webdriver', {
+    get: () => undefined
+})
+'''    
+header['User-Agent'] = random.choice(user_agent_list)
+headerString = "user-agent="+header.get('User-Agent')
+option.add_argument(headerString)
+browser = webdriver.Chrome(
+    options=option, executable_path='D:\downloads\chromedriver_win32\chromedriver.exe')
+browser.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {"source": script})
+# browser = webdriver.Safari()
+wait = WebDriverWait(browser, 5)
 
-    header['User-Agent'] = random.choice(user_agent_list)
-    headerString = "user-agent="+header.get('User-Agent')
-    option.add_argument(headerString)
-    browser = webdriver.Chrome(options=option,executable_path='D:\downloads\chromedriver_win32\chromedriver.exe')
-    # browser = webdriver.Safari()
-    wait = WebDriverWait(browser, 5)
-
-    # 手动登录，获取cookie信息
-    getCookie()
-    # 读取cookie
-    # cookieFile = open(os.path.abspath('cookies.txt'))
-    # getcookies_decode_to_dict(browser)
-    # response = requests.get(url=url, headers=header)
-    # browser.get(url)
-    # if "立即登录" in response.text:
-    #     "登录失败"
-    # else:
-    #     "登录成功"
+# 手动登录，获取cookie信息
+login()
+# 读取cookie
+# cookieFile = open(os.path.abspath('cookies.txt'))
+# getcookies_decode_to_dict(browser)
+# response = requests.get(url=url, headers=header)
+# browser.get(url)
+# if "立即登录" in response.text:
+#     "登录失败"
+# else:
+#     "登录成功"
+while True:
+    pass
