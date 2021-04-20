@@ -86,6 +86,7 @@ def login():
         pass
     print("登陆成功")
    
+   
     # # print("y=", y, type(y))
     # # 获取验证码滑块
     # # button = browser.find_element_by_xpath('//*[@id="secsdk-captcha-drag-wrapper"]/div[2]/div')
